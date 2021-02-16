@@ -7,7 +7,7 @@
 
 use std::sync::Arc;
 
-use node_template_runtime::{opaque::Block, AccountId, Balance, Index};
+use node_template_runtime::{opaque::Block, AccountId, Balance,Moment,Signature, Index};
 use sp_api::ProvideRuntimeApi;
 use sp_blockchain::{Error as BlockChainError, HeaderMetadata, HeaderBackend};
 use sp_block_builder::BlockBuilder;
@@ -39,7 +39,7 @@ pub fn create_full<C, P>(
 	C::Api: substrate_frame_rpc_system::AccountNonceApi<Block, AccountId, Index>,
 	C::Api: pallet_transaction_payment_rpc::TransactionPaymentRuntimeApi<Block, Balance>,
 	C::Api: BlockBuilder<Block>,
-	C::Api: sum_storage_runtime_api::SumStorageApi<Block>,
+
 C::Api: orderbook_runtime_api::OrderbookApi<Block,AccountId,Moment>,
 C::Api: wyvern_exchange_runtime_api::WyvernExchangeApi<Block,AccountId,Balance,Moment,Signature>,
 	P: TransactionPool + 'static,
