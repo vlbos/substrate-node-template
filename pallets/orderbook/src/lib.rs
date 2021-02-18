@@ -1,15 +1,18 @@
 //! # Substrate Enterprise Sample - Order Post example pallet
 #![cfg_attr(not(feature = "std"), no_std)]
 
-
-#[cfg(feature = "std")]
-use serde::{Deserialize, Serialize};
 use codec::{Decode, Encode};
 use core::result::Result;
 use frame_support::{
-    decl_error, decl_event, decl_module, decl_storage, dispatch, ensure, sp_runtime::RuntimeDebug,
-    sp_std::collections::btree_set::BTreeSet, sp_std::prelude::*,
+    decl_error, decl_event, decl_module, decl_storage,
+    dispatch::{DispatchError, DispatchResult},
+    ensure,
+    sp_runtime::RuntimeDebug,
+    sp_std::collections::btree_set::BTreeSet,
+    sp_std::prelude::*,
 };
+#[cfg(feature = "std")]
+use serde::{Deserialize, Serialize};
 // traits::EnsureOrigin,
 use frame_system::{self as system, ensure_signed};
 
@@ -24,7 +27,7 @@ mod tests;
 pub const ORDER_ID_MAX_LENGTH: usize = 36;
 pub const ORDER_FIELD_NAME_MAX_LENGTH: usize = 10;
 pub const ORDER_FIELD_VALUE_MAX_LENGTH: usize = 20;
-pub const ORDER_MAX_FIELDS: usize = 3;
+pub const ORDER_MAX_FIELDS: usize = 54;
 
 // Custom types
 pub type OrderId = Vec<u8>;
@@ -42,7 +45,7 @@ pub struct OrderJSONType<AccountId, Moment> {
     // The order ID would typically be a GS1 GTIN (Global Trade Item Number),
     // or ASIN (Amazon Standard Identification Number), or similar,
     // a numeric or alpha-numeric code with a well-defined data structure.
-    orderId: OrderId,
+    order_id: OrderId,
     // This is account that represents the owner of this order, as in
     // the manufacturer or supplier providing this order within the value chain.
     owner: AccountId,
@@ -54,7 +57,7 @@ pub struct OrderJSONType<AccountId, Moment> {
     registered: Moment,
 }
 
-#[derive(Encode, Decode,Clone, PartialEq, Eq, RuntimeDebug)]
+#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub struct OrderQuery<AccountId> {
     limit: Option<u64>,
@@ -121,7 +124,7 @@ decl_storage! {
         NextOrderIndex: u64;
         pub Orders get(fn order_by_index): map hasher(blake2_128_concat) u64 => Option<OrderJSONType<T::AccountId, T::Moment>>;
         pub Orderi get(fn order_by_id): map hasher(blake2_128_concat) OrderId => u64;
-        pub OrdersOfOrganization get(fn orders_of_org): double_map hasher(blake2_128_concat) Vec<u8>, hasher(blake2_128_concat) Vec<u8>  => Vec<u64>;
+        pub OrdersByField get(fn orders_by_field): double_map hasher(blake2_128_concat) Vec<u8>, hasher(blake2_128_concat) Vec<u8>  => Vec<u64>;
         pub OwnerOf get(fn owner_of): map hasher(blake2_128_concat) OrderId => Option<T::AccountId>;
     }
 }
@@ -152,18 +155,17 @@ decl_module! {
         fn deposit_event() = default;
 
         #[weight = 10_000]
-        pub fn post_order(origin, orderId: OrderId, owner: T::AccountId, fields: Option<Vec<OrderField>>) -> dispatch::DispatchResult {
+        pub fn post_order(origin, order_id: OrderId, owner: T::AccountId, fields: Option<Vec<OrderField>>) -> DispatchResult {
             // T::CreateRoleOrigin::ensure_origin(origin.clone())?;
             let who = ensure_signed(origin)?;
-
             // Validate order ID
-            Self::validate_order_id(&orderId)?;
+            Self::validate_order_id(&order_id)?;
 
             // Validate order fields
             Self::validate_order_fields(&fields)?;
 
             // Check order doesn't exist yet (1 DB read)
-            Self::validate_new_order(&orderId)?;
+            Self::validate_new_order(&order_id)?;
 
 
 
@@ -178,41 +180,55 @@ decl_module! {
 
             NextOrderIndex::put(next_id);
 
-if let Some(fields) = &fields {
-            for field in fields {
-            let mut index_arr: Vec<u64> = Vec::new();
+            if let Some(fields) = &fields {
+                        for field in fields {
+                        let mut index_arr: Vec<u64> = Vec::new();
 
-            if <OrdersOfOrganization>::contains_key(field.name(),field.value())
-            {
-                index_arr = <OrdersOfOrganization>::get(field.name(),field.value());
-                ensure!(!index_arr.contains(&next_id), "Account already has admin role");
+                        if <OrdersByField>::contains_key(field.name(),field.value())
+                        {
+                            index_arr = <OrdersByField>::get(field.name(),field.value());
+                if(!index_arr.contains(&next_id))
+{
+                        index_arr.push(next_id);
+        <OrdersByField>::mutate(field.name(),field.value(), |arr|{*arr=index_arr});
+}
+                            // ensure!(!index_arr.contains(&next_id), "Account already has admin role");
+                        }
+                        else
+{
+                        index_arr.push(next_id);
+                        <OrdersByField>::insert(field.name(),field.value(), index_arr);
+}
+
+                //   <OrdersByField<T>>::append(&field, &next_id);
+                        }
             }
-
-            index_arr.push(next_id);
-            <OrdersOfOrganization>::insert(field.name(),field.value(), index_arr);
-
-    //   <OrdersOfOrganization<T>>::append(&field, &next_id);
-            }
-   }
 
 
             // Create a order instance
-            let order = Self::new_order()
-                .identified_by(orderId.clone())
+            let mut order = Self::new_order()
+                .identified_by(order_id.clone())
                 .owned_by(owner.clone())
                 .registered_on(<timestamp::Module<T>>::now())
                 .with_fields(fields)
                 .build();
-
+            order.index = next_id;
             // Add order & ownerOf (3 DB writes)
+ if !<Orders<T>>::contains_key(next_id.clone())
+        {
             <Orders<T>>::insert(next_id, order);
-            <Orderi>::insert(&orderId, next_id);
-            // <OrdersOfOrganization<T>>::append(&owner, &orderId);
+}
+ if !<Orderi>::contains_key(order_id.clone())
+{
+            <Orderi>::insert(&order_id, next_id);
+}
+            // <OrdersByField<T>>::append(&owner, &order_id);
+ if !<OwnerOf<T>>::contains_key(order_id.clone())
+{
+            <OwnerOf<T>>::insert(&order_id, &owner);
+}
 
-
-               <OwnerOf<T>>::insert(&orderId, &owner);
-
-            Self::deposit_event(RawEvent::OrderPosted(who, orderId, owner));
+            Self::deposit_event(RawEvent::OrderPosted(who, order_id, owner));
 
             Ok(())
         }
@@ -225,20 +241,23 @@ impl<T: Trait> Module<T> {
         OrderBuilder::<T::AccountId, T::Moment>::default()
     }
 
-    pub fn validate_order_id(orderId: &[u8]) -> Result<(), Error<T>> {
+    pub fn validate_order_id(order_id: &[u8]) -> DispatchResult {
         // Basic order ID validation
-        ensure!(!orderId.is_empty(), Error::<T>::OrderIdMissing);
-        ensure!(orderId.len() <= ORDER_ID_MAX_LENGTH, Error::<T>::OrderIdTooLong);
+        ensure!(!order_id.is_empty(), Error::<T>::OrderIdMissing);
+        ensure!(
+            order_id.len() <= ORDER_ID_MAX_LENGTH,
+            Error::<T>::OrderIdTooLong
+        );
         Ok(())
     }
 
-    pub fn validate_new_order(orderId: &[u8]) -> Result<(), Error<T>> {
+    pub fn validate_new_order(order_id: &[u8]) -> DispatchResult {
         // Order existence check
-        ensure!(!<Orderi>::contains_key(orderId), Error::<T>::OrderIdExists);
+        ensure!(!<Orderi>::contains_key(order_id), Error::<T>::OrderIdExists);
         Ok(())
     }
 
-    pub fn validate_order_fields(fields: &Option<Vec<OrderField>>) -> Result<(), Error<T>> {
+    pub fn validate_order_fields(fields: &Option<Vec<OrderField>>) -> DispatchResult {
         if let Some(fields) = fields {
             ensure!(
                 fields.len() <= ORDER_MAX_FIELDS,
@@ -260,7 +279,12 @@ impl<T: Trait> Module<T> {
 
     pub fn get_orders(
         order_query: Option<OrderQuery<T::AccountId>>,
+        page: Option<u64>,
     ) -> Option<Vec<OrderJSONType<T::AccountId, T::Moment>>> {
+        let mut _page = 1;
+        if let Some(page) = page {
+            _page = page
+        }
         let mut order_arr: Vec<OrderJSONType<T::AccountId, T::Moment>> = Vec::new();
         // let mut index_arr: Vec<u64> = Vec::new();
         let mut order: BTreeSet<u64> = BTreeSet::new();
@@ -270,8 +294,8 @@ impl<T: Trait> Module<T> {
                     return Some(order_arr);
                 }
                 for field in params {
-                    if <OrdersOfOrganization>::contains_key(field.name(), field.value()) {
-                        let index_arr = <OrdersOfOrganization>::get(field.name(), field.value());
+                    if <OrdersByField>::contains_key(field.name(), field.value()) {
+                        let index_arr = <OrdersByField>::get(field.name(), field.value());
                         if !order.is_empty() {
                             let o = index_arr.into_iter().collect::<BTreeSet<_>>();
                             let sorder: Vec<u64> = order.intersection(&o).cloned().collect();
@@ -334,7 +358,7 @@ where
     Moment: Default,
 {
     index: u64,
-    orderId: OrderId,
+    order_id: OrderId,
     owner: AccountId,
     fields: Option<Vec<OrderField>>,
     registered: Moment,
@@ -350,8 +374,8 @@ where
         self
     }
 
-    pub fn identified_by(mut self, orderId: OrderId) -> Self {
-        self.orderId = orderId;
+    pub fn identified_by(mut self, order_id: OrderId) -> Self {
+        self.order_id = order_id;
         self
     }
 
@@ -373,7 +397,7 @@ where
     pub fn build(self) -> OrderJSONType<AccountId, Moment> {
         OrderJSONType::<AccountId, Moment> {
             index: self.index,
-            orderId: self.orderId,
+            order_id: self.order_id,
             owner: self.owner,
             fields: self.fields,
             registered: self.registered,

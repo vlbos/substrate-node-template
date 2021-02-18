@@ -4,11 +4,8 @@ use super::*;
 use crate::{mock::*, Error};
 use frame_support::{assert_noop, assert_ok, dispatch};
 
-const TEST_ORDER_ID: &str = "00012345600012";
-const TEST_ORGANIZATION: &str = "Northwind";
 const TEST_SENDER: &str = "Alice";
 const TEST_SENDER_1: &str = "Bob";
-const LONG_VALUE : &str = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec aliquam ut tortor nec congue. Pellente";
 
 //   const makeOrder = (exchange, isMaker) => ({
 //     exchange: exchange,

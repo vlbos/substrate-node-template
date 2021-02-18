@@ -4,13 +4,13 @@ use super::*;
 use crate::{mock::*, Error};
 use frame_support::{assert_noop, assert_ok, dispatch};
 
-pub fn store_test_order<T: Trait>(id: OrderId, owner: T::AccountId, registered: T::Moment) {
+pub fn store_test_order<T: Trait>(order_id: OrderId, owner: T::AccountId, registered: T::Moment) {
     let index = 1;
     Orders::<T>::insert(
         index,
         OrderJSONType {
             index,
-            id,
+            order_id,
             owner,
             registered,
             fields: None,
@@ -27,36 +27,39 @@ const LONG_VALUE : &str = "Lorem ipsum dolor sit amet, consectetur adipiscing el
 fn create_order_without_fields() {
     new_test_ext().execute_with(|| {
         let sender = account_key(TEST_SENDER);
-        let id = TEST_ORDER_ID.as_bytes().to_owned();
+        let order_id = TEST_ORDER_ID.as_bytes().to_owned();
         let owner = account_key(TEST_ORGANIZATION);
         let now = 42;
         let index = 1;
         Timestamp::set_timestamp(now);
 
-        let result = Orderbook::post_order(Origin::signed(sender), id.clone(), owner.clone(), None);
+        let result = Orderbook::post_order(
+            Origin::signed(sender),
+            order_id.clone(),
+            owner.clone(),
+            None,
+        );
 
         assert_ok!(result);
 
         assert_eq!(
-            Orderbook::order_by_id(&id),
+            Orderbook::order_by_index(index),
             Some(OrderJSONType {
-                index: index,
-                id: id.clone(),
+                index: 1,
+                order_id: order_id.clone(),
                 owner: owner,
                 registered: now,
                 fields: None
             })
         );
 
-        // assert_eq!(<OrdersOfOrganization<Test>>::get(owner), vec![id.clone()]);
+        // assert_eq!(<OrdersOfOrganization<Test>>::get(owner), vec![order_id.clone()]);
 
-        assert_eq!(Orderbook::owner_of(&id), Some(owner));
+        assert_eq!(Orderbook::owner_of(&order_id), Some(owner));
 
         // Event is raised
-        assert!(System::events()
-            .iter()
-            .any(|er| er.event
-                == TestEvent::orderbook(RawEvent::OrderPosted(sender, id.clone(), owner))));
+        assert!(System::events().iter().any(|er| er.event
+            == TestEvent::orderbook(RawEvent::OrderPosted(sender, order_id.clone(), owner))));
     });
 }
 
@@ -65,7 +68,7 @@ fn create_order_without_fields() {
 //   "order_hash": "0x3f8d16507c4d9905815e860324d64b9c9f5933a70e59c2a07a63320459f67826",
 //   "metadata": {
 //     "asset": {
-//       "id": "505",
+//       "order_id": "505",
 //       "address": "0x16baf0de678e52367adc69fd067e5edd1d33e3bf"
 //     },
 //     "schema": "ERC721"
@@ -132,10 +135,11 @@ fn create_order_without_fields() {
 
 #[test]
 fn create_order_with_valid_fields() {
-    let fields = vec![
+    new_test_ext().execute_with(|| {
+ let fields = vec![
 OrderField::new(b"created_date", b"2019-01-29T04:04:03.258323"),
 OrderField::new(b"order_hash", b"0x3f8d16507c4d9905815e860324d64b9c9f5933a70e59c2a07a63320459f67826"),
-OrderField::new(b"metadata.asset.id", b"505"),
+OrderField::new(b"metadata.asset.order_id", b"505"),
 OrderField::new(b"metadata.asset.address", b"0x16baf0de678e52367adc69fd067e5edd1d33e3bf"),
 OrderField::new(b"metadata.schema", b"ERC721"),
 OrderField::new(b"exchange", b"0x5206e78b21ce315ce284fb24cf05e0585a93b1d9"),
@@ -187,9 +191,8 @@ OrderField::new(b"finalized", b"false"),
 OrderField::new(b"marked_invalid", b"false"),
 OrderField::new(b"prefixed_hash", b"0x98a07dfb9e4da7ffc0ad0fb230afc8684dc4a0ac44623eded6a4c42e1df99954"),
             ];
-    new_test_ext().execute_with(|| {
         let sender = account_key(TEST_SENDER);
-        let id = TEST_ORDER_ID.as_bytes().to_owned();
+        let order_id = TEST_ORDER_ID.as_bytes().to_owned();
         let owner = account_key(TEST_ORGANIZATION);
         let now = 42;
         let index = 1;
@@ -197,9 +200,9 @@ OrderField::new(b"prefixed_hash", b"0x98a07dfb9e4da7ffc0ad0fb230afc8684dc4a0ac44
 
         let result = Orderbook::post_order(
             Origin::signed(sender),
-            id.clone(),
+            order_id.clone(),
             owner.clone(),
-            Some(fields),
+            Some(fields.clone()),
         );
 
         assert_ok!(result);
@@ -208,35 +211,39 @@ OrderField::new(b"prefixed_hash", b"0x98a07dfb9e4da7ffc0ad0fb230afc8684dc4a0ac44
             Orderbook::order_by_index(index),
             Some(OrderJSONType {
                 index: index,
-                id: id.clone(),
+                order_id: order_id.clone(),
                 owner: owner,
                 registered: now,
-                fields: Some(fields),
+                fields: Some(fields.clone()),
             })
         );
 
         assert_eq!(
             Orderbook::get_orders( Some(OrderQuery {
-                fields: Some(fields),
-            }),
-            Some(OrderJSONType {
+                limit:None,
+                offset:None,
+                owner:None,
+token_ids:None,
+                params: Some(fields.clone()),
+            }),None),
+            Some(vec![OrderJSONType {
                 index: index,
-                id: id.clone(),
+                order_id: order_id.clone(),
                 owner: owner,
                 registered: now,
-                fields: Some(fields),
-            })
+                fields: Some(fields.clone()),
+            }])
         );
 
-        // assert_eq!(<OrdersOfOrganization<Test>>::get(owner), vec![id.clone()]);
+        // assert_eq!(<OrdersOfOrganization<Test>>::get(owner), vec![order_id.clone()]);
 
-        assert_eq!(Orderbook::owner_of(&id), Some(owner));
+        assert_eq!(Orderbook::owner_of(&order_id), Some(owner));
 
         // Event is raised
         assert!(System::events()
             .iter()
             .any(|er| er.event
-                == TestEvent::orderbook(RawEvent::OrderPosted(sender, id.clone(), owner))));
+                == TestEvent::orderbook(RawEvent::OrderPosted(sender, order_id.clone(), owner))));
     });
 }
 
@@ -295,7 +302,7 @@ fn create_order_with_existing_id() {
                 account_key(TEST_ORGANIZATION),
                 None
             ),
-            Error::<Test>::OrderIdExists
+            dispatch::DispatchError::BadOrigin
         );
     })
 }
@@ -355,5 +362,27 @@ fn create_order_with_invalid_field_value() {
             ),
             Error::<Test>::OrderInvalidFieldValue
         );
+    })
+}
+
+//  owner?: string;
+//     sale_kind?: SaleKind;
+//     asset_contract_address?: string;
+//     payment_token_address?: string;
+//     is_english?: boolean;
+//     is_expired?: boolean;
+//     bundled?: boolean;
+//     include_invalid?: boolean;
+//     token_id?: number | string;
+//     token_ids?: Array<number | string>;
+//     listed_after?: number | string;
+//     listed_before?: number | string;
+//     limit?: number;
+//     offset?: number;
+
+#[test]
+fn get_orders_test() {
+    new_test_ext().execute_with(|| {
+        assert_eq!(Orderbook::get_orders(None, None), Some(vec![]));
     })
 }
