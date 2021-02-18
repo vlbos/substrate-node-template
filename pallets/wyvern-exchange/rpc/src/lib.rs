@@ -5,21 +5,23 @@ use jsonrpc_derive::rpc;
 use sp_api::ProvideRuntimeApi;
 use sp_blockchain::HeaderBackend;
 use sp_runtime::{generic::BlockId, traits::Block as BlockT};
+// use sp_core::Bytes;
 use std::sync::Arc;
 use wyvern_exchange_runtime_api::WyvernExchangeApi as WyvernExchangeRuntimeApi;
 use wyvern_exchange::{Side,SaleKind,FeeMethod,HowToCall};
 use codec::Codec;
+
 #[rpc]
 pub trait WyvernExchangeApi<BlockHash,AccountId,Balance,Moment,Signature> {
 	#[rpc(name = "wyvernExchange_calculateFinalPriceEx")]
   fn calculate_final_price_ex(&self,
         side: Side,
         sale_kind: SaleKind,
-        base_price: Balance,
+        base_price: u64,
         extra: Moment,
         listing_time: Moment,
         expiration_time: Moment,
-    at: Option<BlockHash>) -> Result<Balance>;
+    at: Option<BlockHash>) -> Result<u64>;
 
 	#[rpc(name = "wyvernExchange_hashOrderEx")]
     fn hash_order_ex(&self,
@@ -29,9 +31,9 @@ pub trait WyvernExchangeApi<BlockHash,AccountId,Balance,Moment,Signature> {
         side: Side,
         sale_kind: SaleKind,
         how_to_call: HowToCall,
-        calldata: Vec<u8>,
-        replacement_pattern: Vec<u8>,
-        static_extradata: Vec<u8>,
+        calldata: String,
+        replacement_pattern: String,
+        static_extradata: String,
     at: Option<BlockHash>) -> Result<Vec<u8>>;
 
 #[rpc(name = "wyvernExchange_hashToSignEx")]
@@ -42,9 +44,9 @@ pub trait WyvernExchangeApi<BlockHash,AccountId,Balance,Moment,Signature> {
         side: Side,
         sale_kind: SaleKind,
         how_to_call: HowToCall,
-        calldata: Vec<u8>,
-        replacement_pattern: Vec<u8>,
-        static_extradata: Vec<u8>,
+        calldata: String,
+        replacement_pattern: String,
+        static_extradata: String,
     at: Option<BlockHash>) -> Result<Vec<u8>>;
 
 #[rpc(name = "wyvernExchange_validateOrderParametersEx")]
@@ -55,9 +57,9 @@ pub trait WyvernExchangeApi<BlockHash,AccountId,Balance,Moment,Signature> {
         side: Side,
         sale_kind: SaleKind,
         how_to_call: HowToCall,
-        calldata: Vec<u8>,
-        replacement_pattern: Vec<u8>,
-        static_extradata: Vec<u8>,
+        calldata: String,
+        replacement_pattern: String,
+        static_extradata: String,
     at: Option<BlockHash>) -> Result<bool>;
 
 #[rpc(name = "wyvernExchange_validateOrderEx")]
@@ -68,9 +70,9 @@ pub trait WyvernExchangeApi<BlockHash,AccountId,Balance,Moment,Signature> {
         side: Side,
         sale_kind: SaleKind,
         how_to_call: HowToCall,
-        calldata: Vec<u8>,
-        replacement_pattern: Vec<u8>,
-        static_extradata: Vec<u8>,
+        calldata: String,
+        replacement_pattern: String,
+        static_extradata: String,
         sig: Signature,
     at: Option<BlockHash>) -> Result<bool> ;
 
@@ -82,36 +84,36 @@ pub trait WyvernExchangeApi<BlockHash,AccountId,Balance,Moment,Signature> {
         side: Side,
         sale_kind: SaleKind,
         how_to_call: HowToCall,
-        calldata: Vec<u8>,
-        replacement_pattern: Vec<u8>,
-        static_extradata: Vec<u8>,
-    at: Option<BlockHash>) -> Result<Balance>;
+        calldata: String,
+        replacement_pattern: String,
+        static_extradata: String,
+    at: Option<BlockHash>) -> Result<u64>;
 
 #[rpc(name = "wyvernExchange_ordersCanMatchEx")]
    fn orders_can_match_ex(&self,
         addrs: Vec<AccountId>,
         uints: Vec<u64>,
-        fee_methods_sides_kinds_how_to_calls: Vec<u8>,
-        calldata_buy: Vec<u8>,
-        calldata_sell: Vec<u8>,
-        replacement_pattern_buy: Vec<u8>,
-        replacement_pattern_sell: Vec<u8>,
-        static_extradata_buy: Vec<u8>,
-        static_extradata_sell: Vec<u8>,
+        fee_methods_sides_kinds_how_to_calls: String,
+        calldata_buy: String,
+        calldata_sell: String,
+        replacement_pattern_buy: String,
+        replacement_pattern_sell: String,
+        static_extradata_buy: String,
+        static_extradata_sell: String,
     at: Option<BlockHash>) -> Result<bool> ;
 
 #[rpc(name = "wyvernExchange_calculateMatchPriceEx")]
 fn calculate_match_price_ex(&self,
         addrs: Vec<AccountId>,
         uints: Vec<u64>,
-        fee_methods_sides_kinds_how_to_calls: Vec<u8>,
-        calldata_buy: Vec<u8>,
-        calldata_sell: Vec<u8>,
-        replacement_pattern_buy: Vec<u8>,
-        replacement_pattern_sell: Vec<u8>,
-        static_extradata_buy: Vec<u8>,
-        static_extradata_sell: Vec<u8>,
-    at: Option<BlockHash>) -> Result<Balance> ;
+        fee_methods_sides_kinds_how_to_calls: String,
+        calldata_buy: String,
+        calldata_sell: String,
+        replacement_pattern_buy: String,
+        replacement_pattern_sell: String,
+        static_extradata_buy: String,
+        static_extradata_sell: String,
+    at: Option<BlockHash>) -> Result<u64> ;
 }
 
 /// A struct that implements the `WyvernExchangeApi`.
@@ -164,11 +166,11 @@ where
  fn calculate_final_price_ex(&self,
         side: Side,
         sale_kind: SaleKind,
-        base_price: Balance,
+        base_price: u64,
         extra: Moment,
         listing_time: Moment,
         expiration_time: Moment,
-    at: Option<<Block as BlockT>::Hash>) -> Result<Balance>{
+    at: Option<<Block as BlockT>::Hash>) -> Result<u64>{
 		let api = self.client.runtime_api();
 		let at = BlockId::hash(at.unwrap_or_else(||
 			// If the block hash is not supplied assume the best block.
@@ -193,9 +195,9 @@ where
         side: Side,
         sale_kind: SaleKind,
         how_to_call: HowToCall,
-        calldata: Vec<u8>,
-        replacement_pattern: Vec<u8>,
-        static_extradata: Vec<u8>,
+        calldata: String,
+        replacement_pattern: String,
+        static_extradata: String,
     at: Option<<Block as BlockT>::Hash>) -> Result<Vec<u8>>{
 		let api = self.client.runtime_api();
 		let at = BlockId::hash(at.unwrap_or_else(||
@@ -209,9 +211,9 @@ where
         side,
         sale_kind,
         how_to_call,
-        calldata,
-        replacement_pattern,
-        static_extradata);
+        calldata.clone().into_bytes(),
+        replacement_pattern.clone().into_bytes(),
+        static_extradata.clone().into_bytes());
 		runtime_api_result.map_err(|e| RpcError {
 			code: ErrorCode::ServerError(9876), // No real reason for this value
 			message: "Something wrong".into(),
@@ -226,9 +228,9 @@ where
         side: Side,
         sale_kind: SaleKind,
         how_to_call: HowToCall,
-        calldata: Vec<u8>,
-        replacement_pattern: Vec<u8>,
-        static_extradata: Vec<u8>,
+        calldata: String,
+        replacement_pattern: String,
+        static_extradata: String,
     at: Option<<Block as BlockT>::Hash>) -> Result<Vec<u8>>{
 		let api = self.client.runtime_api();
 		let at = BlockId::hash(at.unwrap_or_else(||
@@ -242,9 +244,9 @@ where
         side,
         sale_kind,
         how_to_call,
-        calldata,
-        replacement_pattern,
-        static_extradata);
+        calldata.clone().into_bytes(),
+        replacement_pattern.clone().into_bytes(),
+        static_extradata.clone().into_bytes());
 		runtime_api_result.map_err(|e| RpcError {
 			code: ErrorCode::ServerError(9876), // No real reason for this value
 			message: "Something wrong".into(),
@@ -258,9 +260,9 @@ where
         side: Side,
         sale_kind: SaleKind,
         how_to_call: HowToCall,
-        calldata: Vec<u8>,
-        replacement_pattern: Vec<u8>,
-        static_extradata: Vec<u8>,
+        calldata: String,
+        replacement_pattern: String,
+        static_extradata: String,
     at: Option<<Block as BlockT>::Hash>) -> Result<bool>{
 		let api = self.client.runtime_api();
 		let at = BlockId::hash(at.unwrap_or_else(||
@@ -274,9 +276,9 @@ where
         side,
         sale_kind,
         how_to_call,
-        calldata,
-        replacement_pattern,
-        static_extradata);
+        calldata.clone().into_bytes(),
+        replacement_pattern.clone().into_bytes(),
+        static_extradata.clone().into_bytes());
 		runtime_api_result.map_err(|e| RpcError {
 			code: ErrorCode::ServerError(9876), // No real reason for this value
 			message: "Something wrong".into(),
@@ -290,9 +292,9 @@ where
         side: Side,
         sale_kind: SaleKind,
         how_to_call: HowToCall,
-        calldata: Vec<u8>,
-        replacement_pattern: Vec<u8>,
-        static_extradata: Vec<u8>,
+        calldata: String,
+        replacement_pattern: String,
+        static_extradata: String,
         sig: Signature,
     at: Option<<Block as BlockT>::Hash>) -> Result<bool> {
 		let api = self.client.runtime_api();
@@ -307,9 +309,9 @@ where
         side,
         sale_kind,
         how_to_call,
-        calldata,
-        replacement_pattern,
-        static_extradata,
+        calldata.clone().into_bytes(),
+        replacement_pattern.clone().into_bytes(),
+        static_extradata.clone().into_bytes(),
         sig);
 		runtime_api_result.map_err(|e| RpcError {
 			code: ErrorCode::ServerError(9876), // No real reason for this value
@@ -324,10 +326,10 @@ where
         side: Side,
         sale_kind: SaleKind,
         how_to_call: HowToCall,
-        calldata: Vec<u8>,
-        replacement_pattern: Vec<u8>,
-        static_extradata: Vec<u8>,
-    at: Option<<Block as BlockT>::Hash>) -> Result<Balance>{
+        calldata: String,
+        replacement_pattern: String,
+        static_extradata: String,
+    at: Option<<Block as BlockT>::Hash>) -> Result<u64>{
 		let api = self.client.runtime_api();
 		let at = BlockId::hash(at.unwrap_or_else(||
 			// If the block hash is not supplied assume the best block.
@@ -340,9 +342,9 @@ where
         side,
         sale_kind,
         how_to_call,
-        calldata,
-        replacement_pattern,
-        static_extradata);
+        calldata.clone().into_bytes(),
+        replacement_pattern.clone().into_bytes(),
+        static_extradata.clone().into_bytes());
 		runtime_api_result.map_err(|e| RpcError {
 			code: ErrorCode::ServerError(9876), // No real reason for this value
 			message: "Something wrong".into(),
@@ -352,13 +354,13 @@ where
    fn orders_can_match_ex(&self,
         addrs: Vec<AccountId>,
         uints: Vec<u64>,
-        fee_methods_sides_kinds_how_to_calls: Vec<u8>,
-        calldata_buy: Vec<u8>,
-        calldata_sell: Vec<u8>,
-        replacement_pattern_buy: Vec<u8>,
-        replacement_pattern_sell: Vec<u8>,
-        static_extradata_buy: Vec<u8>,
-        static_extradata_sell: Vec<u8>,
+        fee_methods_sides_kinds_how_to_calls: String,
+        calldata_buy: String,
+        calldata_sell: String,
+        replacement_pattern_buy: String,
+        replacement_pattern_sell: String,
+        static_extradata_buy: String,
+        static_extradata_sell: String,
     at: Option<<Block as BlockT>::Hash>) -> Result<bool> {
 		let api = self.client.runtime_api();
 		let at = BlockId::hash(at.unwrap_or_else(||
@@ -368,13 +370,13 @@ where
 		let runtime_api_result = api.orders_can_match_ex(&at,
         addrs,
         uints,
-        fee_methods_sides_kinds_how_to_calls,
-        calldata_buy,
-        calldata_sell,
-        replacement_pattern_buy,
-        replacement_pattern_sell,
-        static_extradata_buy,
-        static_extradata_sell);
+        fee_methods_sides_kinds_how_to_calls.clone().into_bytes(),
+        calldata_buy.clone().into_bytes(),
+        calldata_sell.clone().into_bytes(),
+        replacement_pattern_buy.clone().into_bytes(),
+        replacement_pattern_sell.clone().into_bytes(),
+        static_extradata_buy.clone().into_bytes(),
+        static_extradata_sell.clone().into_bytes());
 		runtime_api_result.map_err(|e| RpcError {
 			code: ErrorCode::ServerError(9876), // No real reason for this value
 			message: "Something wrong".into(),
@@ -384,14 +386,14 @@ where
 fn calculate_match_price_ex(&self,
         addrs: Vec<AccountId>,
         uints: Vec<u64>,
-        fee_methods_sides_kinds_how_to_calls: Vec<u8>,
-        calldata_buy: Vec<u8>,
-        calldata_sell: Vec<u8>,
-        replacement_pattern_buy: Vec<u8>,
-        replacement_pattern_sell: Vec<u8>,
-        static_extradata_buy: Vec<u8>,
-        static_extradata_sell: Vec<u8>,
-    at: Option<<Block as BlockT>::Hash>) -> Result<Balance> 
+        fee_methods_sides_kinds_how_to_calls: String,
+        calldata_buy: String,
+        calldata_sell: String,
+        replacement_pattern_buy: String,
+        replacement_pattern_sell: String,
+        static_extradata_buy: String,
+        static_extradata_sell: String,
+    at: Option<<Block as BlockT>::Hash>) -> Result<u64> 
 {
 		let api = self.client.runtime_api();
 		let at = BlockId::hash(at.unwrap_or_else(||
@@ -401,13 +403,13 @@ fn calculate_match_price_ex(&self,
 		let runtime_api_result = api.calculate_match_price_ex(&at,
         addrs,
         uints,
-        fee_methods_sides_kinds_how_to_calls,
-        calldata_buy,
-        calldata_sell,
-        replacement_pattern_buy,
-        replacement_pattern_sell,
-        static_extradata_buy,
-        static_extradata_sell);
+        fee_methods_sides_kinds_how_to_calls.clone().into_bytes(),
+        calldata_buy.clone().into_bytes(),
+        calldata_sell.clone().into_bytes(),
+        replacement_pattern_buy.clone().into_bytes(),
+        replacement_pattern_sell.clone().into_bytes(),
+        static_extradata_buy.clone().into_bytes(),
+        static_extradata_sell.clone().into_bytes());
 		runtime_api_result.map_err(|e| RpcError {
 			code: ErrorCode::ServerError(9876), // No real reason for this value
 			message: "Something wrong".into(),

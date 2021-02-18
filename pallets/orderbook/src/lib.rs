@@ -62,7 +62,7 @@ pub struct OrderQuery<AccountId> {
 
     owner: Option<AccountId>,
 
-    token_ids: Option<Vec<Vec<u8>>>,
+    token_ids: Option<Vec<OrderId>>,
 
     params: Option<Vec<OrderField>>,
 }
@@ -117,7 +117,7 @@ pub trait Trait: system::Trait + timestamp::Trait {
 }
 
 decl_storage! {
-    trait Store for Module<T: Trait> as OrderRegistry {
+    trait Store for Module<T: Trait> as Orderbook {
         NextOrderIndex: u64;
         pub Orders get(fn order_by_index): map hasher(blake2_128_concat) u64 => Option<OrderJSONType<T::AccountId, T::Moment>>;
         pub Orderi get(fn order_by_id): map hasher(blake2_128_concat) OrderId => u64;
@@ -150,15 +150,6 @@ decl_module! {
     pub struct Module<T: Trait> for enum Call where origin: T::Origin {
         type Error = Error<T>;
         fn deposit_event() = default;
-
- #[weight = 10_000]
-        pub fn post_orders(origin, orderId: OrderId, owner: T::AccountId) -> dispatch::DispatchResult {
-            // T::CreateRoleOrigin::ensure_origin(origin.clone())?;
-            let who = ensure_signed(origin)?;
-
-
-            Ok(())
-        }
 
         #[weight = 10_000]
         pub fn post_order(origin, orderId: OrderId, owner: T::AccountId, fields: Option<Vec<OrderField>>) -> dispatch::DispatchResult {

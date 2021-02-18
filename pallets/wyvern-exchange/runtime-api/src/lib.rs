@@ -16,11 +16,11 @@ Signature:Codec,
 		     fn calculate_final_price_ex(
         side: Side,
         sale_kind: SaleKind,
-        base_price: Balance,
+        base_price: u64,
         extra: Moment,
         listing_time: Moment,
         expiration_time: Moment,
-    ) -> Balance;
+    ) -> u64;
     fn hash_order_ex(
         addrs: Vec<AccountId>,
         uints: Vec<u64>,
@@ -77,7 +77,7 @@ Signature:Codec,
         calldata: Vec<u8>,
         replacement_pattern: Vec<u8>,
         static_extradata: Vec<u8>,
-    ) -> Balance;
+    ) -> u64;
    fn orders_can_match_ex(
         addrs: Vec<AccountId>,
         uints: Vec<u64>,
@@ -99,6 +99,6 @@ fn calculate_match_price_ex(
         replacement_pattern_sell: Vec<u8>,
         static_extradata_buy: Vec<u8>,
         static_extradata_sell: Vec<u8>,
-    ) -> Balance ;
+    ) -> u64 ;
 	}
 }

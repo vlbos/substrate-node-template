@@ -474,11 +474,11 @@ impl_runtime_apis! {
 		 fn calculate_final_price_ex(
         side: Side,
         sale_kind: SaleKind,
-        base_price: Balance,
+        base_price: u64,
         extra: Moment,
         listing_time: Moment,
         expiration_time: Moment,
-    ) -> Balance{
+    ) -> u64{
 		WyvernExchange::calculate_final_price_ex(  side,
         sale_kind,
         base_price,
@@ -587,7 +587,7 @@ impl_runtime_apis! {
         calldata: Vec<u8>,
         replacement_pattern: Vec<u8>,
         static_extradata: Vec<u8>,
-    ) -> Balance{
+    ) -> u64{
 		WyvernExchange::calculate_current_price_ex(
         addrs,
         uints,
@@ -631,7 +631,7 @@ fn calculate_match_price_ex(
         replacement_pattern_sell: Vec<u8>,
         static_extradata_buy: Vec<u8>,
         static_extradata_sell: Vec<u8>,
-    ) -> Balance 
+    ) -> u64 
 {
 		 WyvernExchange::calculate_match_price_ex(
         addrs,

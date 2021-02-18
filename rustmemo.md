@@ -66,7 +66,7 @@ You can start a development chain with:
 cargo run -- --dev
 ```
 
-Detailed logs may be shown by running the node with the following environment variables set: `RUST_LOG=debug RUST_BACKTRACE=1 cargo run -- --dev`.
+Detailed logs may be shown by running the node with the following environment variables set: `RUST_LOG=debug RUST_BACKTRACE=1 cargo run -- --dev --tmp`.
 
 ```bash
 purge-chain
